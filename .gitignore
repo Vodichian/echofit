@@ -1,0 +1,70 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+.vscode/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The Python implementation of HTTP Server
+# provides a script that can be used to serve
+# a directory on a given port.
+#
+#   python -m http.server 8000
+#
+# This script creates a directory called 'htmlcov'
+# in the current directory.
+htmlcov/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android related
+**/android/**/generated/
+**/android/gen/
+**/android/local.properties
+**/android/project.properties
+**/android/ant-properties.xml
+**/android/ant-build.xml
+**/android/*.iml
+**/android/*.ipr
+**/android/*.iws
+**/android/.settings/
+**/android/.project
+**/android/.classpath
+**/android/externalNativeBuild/
+**/android/.cxx/
+**/android/.externalNativeBuild/
+
+# Windows related
+**/windows/flutter/ephemeral/
+**/windows/flutter/generated/
+
+# Executable distributions
+*.apk
+*.aab
+*.exe
