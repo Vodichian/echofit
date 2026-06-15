@@ -92,7 +92,7 @@ class _VoiceEntryScreenState extends State<VoiceEntryScreen> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(32),
                     ),
                     child: Text(
@@ -114,7 +114,7 @@ class _VoiceEntryScreenState extends State<VoiceEntryScreen> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: (_isListening ? Colors.red : Theme.of(context).colorScheme.primary).withOpacity(0.3),
+                            color: (_isListening ? Colors.red : Theme.of(context).colorScheme.primary).withValues(alpha: 0.3),
                             blurRadius: 20,
                             spreadRadius: 5,
                           )

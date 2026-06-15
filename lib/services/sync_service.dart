@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../models/health_metric.dart';
 import 'database_service.dart';
@@ -21,13 +22,13 @@ class SyncService {
     final String fileUrl = '$baseUrl/remote.php/dav/files/$username/$remotePath';
     final String dirUrl = fileUrl.substring(0, fileUrl.lastIndexOf('/'));
 
-    print('Attempting Nextcloud Sync to URL: $fileUrl');
+    debugPrint('Attempting Nextcloud Sync to URL: $fileUrl');
 
     try {
       // 1. Download current data from remote
       List<HealthMetric> remoteMetrics = [];
       try {
-        print('GET Request to: $fileUrl');
+        debugPrint('GET Request to: $fileUrl');
         final response = await _dio.get(
           fileUrl,
           options: Options(headers: {'Authorization': auth}),
@@ -38,12 +39,12 @@ class SyncService {
         }
       } on DioException catch (e) {
         if (e.response?.statusCode == 404) {
-          print('Remote file not found (404). This is expected for the first sync. Proceeding with empty remote dataset.');
+          debugPrint('Remote file not found (404). This is expected for the first sync. Proceeding with empty remote dataset.');
         } else {
-          print('DioException during GET: ${e.type} - ${e.message}');
+          debugPrint('DioException during GET: ${e.type} - ${e.message}');
           if (e.response != null) {
-            print('Response Status: ${e.response?.statusCode}');
-            print('Response Data: ${e.response?.data}');
+            debugPrint('Response Status: ${e.response?.statusCode}');
+            debugPrint('Response Data: ${e.response?.data}');
           }
           rethrow;
         }
@@ -64,7 +65,7 @@ class SyncService {
       final allMetrics = allMetricsMap.values.toList();
 
       // 4. Upload merged data
-      print('PUT Request to: $fileUrl with ${allMetrics.length} metrics');
+      debugPrint('PUT Request to: $fileUrl with ${allMetrics.length} metrics');
       final jsonToUpload = jsonEncode(allMetrics.map((e) => e.toJson()).toList());
       
       Future<Response> attemptPut() async {
@@ -85,7 +86,7 @@ class SyncService {
         uploadResponse = await attemptPut();
       } on DioException catch (e) {
         if (e.response?.statusCode == 404) {
-          print('PUT failed with 404. Attempting to create parent directory: $dirUrl');
+          debugPrint('PUT failed with 404. Attempting to create parent directory: $dirUrl');
           try {
             // MKCOL to create directory
             await _dio.request(
@@ -95,10 +96,10 @@ class SyncService {
                 headers: {'Authorization': auth},
               ),
             );
-            print('Directory created successfully. Retrying PUT.');
+            debugPrint('Directory created successfully. Retrying PUT.');
             uploadResponse = await attemptPut();
           } catch (dirError) {
-            print('Failed to create directory: $dirError');
+            debugPrint('Failed to create directory: $dirError');
             rethrow;
           }
         } else {
@@ -107,7 +108,7 @@ class SyncService {
       }
 
       if (uploadResponse.statusCode == 201 || uploadResponse.statusCode == 204 || uploadResponse.statusCode == 200) {
-        print('Upload successful. Updating local sync status.');
+        debugPrint('Upload successful. Updating local sync status.');
         // 5. Update local data as synced
         for (var m in unsyncedMetrics) {
           await _dbService.updateMetric(m.copyWith(isSynced: true));
@@ -122,10 +123,10 @@ class SyncService {
           }
         }
       } else {
-        print('Upload failed with status: ${uploadResponse.statusCode}');
+        debugPrint('Upload failed with status: ${uploadResponse.statusCode}');
       }
     } catch (e) {
-      print('Sync failed with error: $e');
+      debugPrint('Sync failed with error: $e');
       rethrow;
     }
   }

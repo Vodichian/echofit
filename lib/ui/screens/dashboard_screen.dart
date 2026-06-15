@@ -84,7 +84,7 @@ class DashboardScreen extends ConsumerWidget {
                     height: 250,
                     padding: const EdgeInsets.only(right: 20, top: 10, bottom: 10),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: _WeightChart(metrics: metrics),
@@ -155,7 +155,7 @@ class _WeightChart extends StatelessWidget {
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withValues(alpha: 0.1),
             ),
           ),
         ],

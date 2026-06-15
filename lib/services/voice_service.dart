@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:permission_handler/permission_handler.dart';
 
@@ -14,8 +15,8 @@ class VoiceService {
     }
 
     _isInitialized = await _speech.initialize(
-      onStatus: (status) => print('Speech status: $status'),
-      onError: (error) => print('Speech error: $error'),
+      onStatus: (status) => debugPrint('Speech status: $status'),
+      onError: (error) => debugPrint('Speech error: $error'),
     );
     return _isInitialized;
   }
@@ -37,10 +38,12 @@ class VoiceService {
           onResult(result.recognizedWords);
         }
       },
-      listenFor: const Duration(seconds: 10),
-      pauseFor: const Duration(seconds: 3),
-      cancelOnError: true,
-      partialResults: false,
+      listenOptions: stt.SpeechListenOptions(
+        listenFor: const Duration(seconds: 10),
+        pauseFor: const Duration(seconds: 3),
+        cancelOnError: true,
+        partialResults: false,
+      ),
     );
   }
 
