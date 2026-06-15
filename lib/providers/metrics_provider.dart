@@ -2,16 +2,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/health_metric.dart';
 import '../services/database_service.dart';
 
-final metricsProvider = StateNotifierProvider<MetricsNotifier, List<HealthMetric>>((ref) {
-  return MetricsNotifier();
-});
+final metricsProvider = NotifierProvider<MetricsNotifier, List<HealthMetric>>(MetricsNotifier.new);
 
-class MetricsNotifier extends StateNotifier<List<HealthMetric>> {
-  MetricsNotifier() : super([]) {
-    loadMetrics();
-  }
-
+class MetricsNotifier extends Notifier<List<HealthMetric>> {
   final _dbService = DatabaseService();
+
+  @override
+  List<HealthMetric> build() {
+    loadMetrics();
+    return [];
+  }
 
   Future<void> loadMetrics() async {
     state = await _dbService.getAllMetrics();
