@@ -115,6 +115,12 @@ class DashboardScreen extends ConsumerWidget {
               (context, index) {
                 final metric = metrics[index];
                 return ListTile(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => ManualEntryDialog(initialMetric: metric),
+                    );
+                  },
                   contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
                   title: Text('Weight: ${metric.weight ?? "--"} kg'),
                   subtitle: Column(

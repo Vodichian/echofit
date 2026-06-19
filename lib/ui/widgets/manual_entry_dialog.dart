@@ -6,7 +6,14 @@ import '../../services/settings_service.dart';
 import '../../services/sync_service.dart';
 
 class ManualEntryDialog extends ConsumerStatefulWidget {
-  const ManualEntryDialog({super.key});
+  final HealthMetric? initialMetric;
+  final DateTime? initialDate;
+
+  const ManualEntryDialog({
+    super.key,
+    this.initialMetric,
+    this.initialDate,
+  });
 
   @override
   ConsumerState<ManualEntryDialog> createState() => _ManualEntryDialogState();
@@ -26,14 +33,23 @@ class _ManualEntryDialogState extends ConsumerState<ManualEntryDialog> {
   @override
   void initState() {
     super.initState();
-    final metrics = ref.read(metricsProvider);
-    final latest = metrics.isNotEmpty ? metrics.first : null;
+    final metric = widget.initialMetric;
+    
+    // If we're not editing, we might still want to pre-fill from the latest metric
+    // unless a specific date was provided (which usually means a new entry for that date).
+    HealthMetric? prefillSource;
+    if (metric != null) {
+      prefillSource = metric;
+    } else if (widget.initialDate == null) {
+      final metrics = ref.read(metricsProvider);
+      prefillSource = metrics.isNotEmpty ? metrics.first : null;
+    }
 
-    _weightController = TextEditingController(text: latest?.weight?.toString() ?? '');
-    _bodyFatController = TextEditingController(text: latest?.bodyFat?.toString() ?? '');
-    _visceralFatController = TextEditingController(text: latest?.visceralFat?.toString() ?? '');
-    _waistlineController = TextEditingController(text: latest?.waistline?.toString() ?? '');
-    _journalController = TextEditingController();
+    _weightController = TextEditingController(text: prefillSource?.weight?.toString() ?? '');
+    _bodyFatController = TextEditingController(text: prefillSource?.bodyFat?.toString() ?? '');
+    _visceralFatController = TextEditingController(text: prefillSource?.visceralFat?.toString() ?? '');
+    _waistlineController = TextEditingController(text: prefillSource?.waistline?.toString() ?? '');
+    _journalController = TextEditingController(text: prefillSource?.journalEntry ?? '');
   }
 
   @override
@@ -54,7 +70,6 @@ class _ManualEntryDialogState extends ConsumerState<ManualEntryDialog> {
     if (isInt) {
       controller.text = newValue.round().toString();
     } else {
-      // Avoid floating point mess like 75.10000000000001
       controller.text = double.parse(newValue.toStringAsFixed(2)).toString();
     }
   }
@@ -74,16 +89,20 @@ class _ManualEntryDialogState extends ConsumerState<ManualEntryDialog> {
         return;
       }
 
-      final metric = HealthMetric(
-        timestamp: DateTime.now(),
+      final metric = (widget.initialMetric ?? HealthMetric(timestamp: widget.initialDate ?? DateTime.now())).copyWith(
         weight: weight,
         bodyFat: bodyFat,
         visceralFat: visceralFat,
         waistline: waistline,
         journalEntry: journalEntry,
+        isSynced: false, // Mark as unsynced after update
       );
 
-      await ref.read(metricsProvider.notifier).addMetric(metric);
+      if (widget.initialMetric != null) {
+        await ref.read(metricsProvider.notifier).updateMetric(metric);
+      } else {
+        await ref.read(metricsProvider.notifier).addMetric(metric);
+      }
 
       // Trigger Sync
       if (await _settingsService.hasCredentials()) {
@@ -102,7 +121,7 @@ class _ManualEntryDialogState extends ConsumerState<ManualEntryDialog> {
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Metric saved successfully')),
+          SnackBar(content: Text(widget.initialMetric != null ? 'Metric updated' : 'Metric saved')),
         );
       }
     }
@@ -147,14 +166,23 @@ class _ManualEntryDialogState extends ConsumerState<ManualEntryDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditing = widget.initialMetric != null;
     return AlertDialog(
-      title: const Text('Add Health Metric'),
+      title: Text(isEditing ? 'Edit Health Metric' : 'Add Health Metric'),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (widget.initialDate != null || isEditing)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Text(
+                    'Date: ${(widget.initialMetric?.timestamp ?? widget.initialDate!).toString().substring(0, 10)}',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
               _buildNumericField(
                 controller: _weightController,
                 label: 'Weight (kg)',
@@ -195,6 +223,29 @@ class _ManualEntryDialogState extends ConsumerState<ManualEntryDialog> {
         ),
       ),
       actions: [
+        if (isEditing)
+          TextButton(
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Delete Entry?'),
+                  content: const Text('Are you sure you want to delete this health record?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                  ],
+                ),
+              );
+              if (confirm == true && mounted) {
+                await ref.read(metricsProvider.notifier).deleteMetric(widget.initialMetric!.id!);
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),

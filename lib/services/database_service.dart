@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:meta/meta.dart';
 import '../models/health_metric.dart';
 
 class DatabaseService {
@@ -8,6 +9,9 @@ class DatabaseService {
   DatabaseService._internal();
 
   Database? _database;
+
+  @visibleForTesting
+  set database(Database? db) => _database = db;
 
   Future<Database> get database async {
     if (_database != null) return _database!;

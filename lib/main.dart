@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'ui/screens/dashboard_screen.dart';
 import 'ui/screens/voice_entry_screen.dart';
+import 'ui/screens/journal_screen.dart';
 import 'ui/screens/settings_screen.dart';
 import 'services/settings_service.dart';
 import 'services/sync_service.dart';
@@ -87,6 +88,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _screens = [
     const DashboardScreen(),
+    const JournalScreen(),
     const VoiceEntryScreen(),
     const SettingsScreen(),
   ];
@@ -138,6 +140,11 @@ class _MainNavigationState extends State<MainNavigation> {
                       label: Text('Dashboard'),
                     ),
                     NavigationRailDestination(
+                      icon: Icon(Icons.calendar_month_outlined),
+                      selectedIcon: Icon(Icons.calendar_month),
+                      label: Text('Journal'),
+                    ),
+                    NavigationRailDestination(
                       icon: Icon(Icons.mic_none),
                       selectedIcon: Icon(Icons.mic),
                       label: Text('Voice'),
@@ -169,6 +176,11 @@ class _MainNavigationState extends State<MainNavigation> {
                       icon: Icon(Icons.dashboard_outlined),
                       selectedIcon: Icon(Icons.dashboard),
                       label: 'Dashboard',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.calendar_month_outlined),
+                      selectedIcon: Icon(Icons.calendar_month),
+                      label: 'Journal',
                     ),
                     NavigationDestination(
                       icon: Icon(Icons.mic_none),
