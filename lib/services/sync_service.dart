@@ -5,12 +5,17 @@ import '../models/health_metric.dart';
 import 'database_service.dart';
 
 class SyncService {
-  final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 30),
-    receiveTimeout: const Duration(seconds: 30),
-    sendTimeout: const Duration(seconds: 30),
-  ));
-  final DatabaseService _dbService = DatabaseService();
+  final Dio _dio;
+  final DatabaseService _dbService;
+
+  SyncService({Dio? dio, DatabaseService? dbService})
+      : _dio = dio ??
+            Dio(BaseOptions(
+              connectTimeout: const Duration(seconds: 30),
+              receiveTimeout: const Duration(seconds: 30),
+              sendTimeout: const Duration(seconds: 30),
+            )),
+        _dbService = dbService ?? DatabaseService();
 
   Future<void> syncWithNextcloud({
     required String baseUrl,
