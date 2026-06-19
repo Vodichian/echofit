@@ -11,9 +11,10 @@ HealthMetric _$HealthMetricFromJson(Map<String, dynamic> json) => HealthMetric(
   timestamp: DateTime.parse(json['timestamp'] as String),
   weight: (json['weight'] as num?)?.toDouble(),
   bodyFat: (json['bodyFat'] as num?)?.toDouble(),
-  visceralFat: (json['visceralFat'] as num?)?.toInt(),
+  visceralFat: (json['visceralFat'] as num?)?.toDouble(),
   waistline: (json['waistline'] as num?)?.toDouble(),
   isSynced: json['isSynced'] as bool? ?? false,
+  journalEntry: json['journalEntry'] as String?,
 );
 
 Map<String, dynamic> _$HealthMetricToJson(HealthMetric instance) =>
@@ -25,4 +26,5 @@ Map<String, dynamic> _$HealthMetricToJson(HealthMetric instance) =>
       'visceralFat': instance.visceralFat,
       'waistline': instance.waistline,
       'isSynced': instance.isSynced,
+      'journalEntry': instance.journalEntry,
     };

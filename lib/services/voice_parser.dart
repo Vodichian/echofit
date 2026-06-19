@@ -8,8 +8,9 @@ class VoiceParser {
     
     double? weight;
     double? bodyFat;
-    int? visceralFat;
+    double? visceralFat;
     double? waistline;
+    String? journalEntry;
 
     // Weight regex: "weight (is)? 75.5"
     final weightRegex = RegExp(r'weight(?:\s+is)?\s+(\d+(?:\.\d+)?)');
@@ -25,11 +26,11 @@ class VoiceParser {
       bodyFat = double.tryParse(bodyFatMatch.group(1)!);
     }
 
-    // Visceral fat regex: "visceral fat (is)? 5"
-    final visceralFatRegex = RegExp(r'visceral\s+fat(?:\s+is)?\s+(\d+)');
+    // Visceral fat regex: "visceral fat (is)? 5.5"
+    final visceralFatRegex = RegExp(r'visceral\s+fat(?:\s+is)?\s+(\d+(?:\.\d+)?)');
     final visceralFatMatch = visceralFatRegex.firstMatch(text);
     if (visceralFatMatch != null) {
-      visceralFat = int.tryParse(visceralFatMatch.group(1)!);
+      visceralFat = double.tryParse(visceralFatMatch.group(1)!);
     }
 
     // Waistline regex: "waistline (is)? 85" or "waist (is)? 85"
@@ -39,7 +40,14 @@ class VoiceParser {
       waistline = double.tryParse(waistlineMatch.group(1)!);
     }
 
-    if (weight == null && bodyFat == null && visceralFat == null && waistline == null) {
+    // Journal entry regex: "note/comment/journal (is)? some text"
+    final journalRegex = RegExp(r'(?:note|comment|journal(?:\s+entry)?)(?:\s+is)?\s+(.*)', dotAll: true);
+    final journalMatch = journalRegex.firstMatch(text);
+    if (journalMatch != null) {
+      journalEntry = journalMatch.group(1)?.trim();
+    }
+
+    if (weight == null && bodyFat == null && visceralFat == null && waistline == null && journalEntry == null) {
       return null;
     }
 
@@ -49,6 +57,7 @@ class VoiceParser {
       bodyFat: bodyFat,
       visceralFat: visceralFat,
       waistline: waistline,
+      journalEntry: journalEntry,
     );
   }
 }

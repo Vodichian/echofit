@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../providers/metrics_provider.dart';
 import '../widgets/metric_card.dart';
+import '../widgets/manual_entry_dialog.dart';
 import '../../models/health_metric.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -14,6 +15,16 @@ class DashboardScreen extends ConsumerWidget {
     final latest = metrics.isNotEmpty ? metrics.first : null;
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) => const ManualEntryDialog(),
+          );
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Add Metric'),
+      ),
       body: CustomScrollView(
         slivers: [
           SliverAppBar.large(
@@ -106,7 +117,20 @@ class DashboardScreen extends ConsumerWidget {
                 return ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
                   title: Text('Weight: ${metric.weight ?? "--"} kg'),
-                  subtitle: Text(metric.timestamp.toString().substring(0, 16)),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(metric.timestamp.toString().substring(0, 16)),
+                      if (metric.journalEntry != null && metric.journalEntry!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text(
+                            'Note: ${metric.journalEntry}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+                          ),
+                        ),
+                    ],
+                  ),
                   trailing: Icon(
                     metric.isSynced ? Icons.cloud_done_outlined : Icons.cloud_off_outlined,
                     size: 18,
