@@ -19,8 +19,9 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'echofit.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 3,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -31,11 +32,20 @@ class DatabaseService {
         timestamp INTEGER NOT NULL,
         weight REAL,
         bodyFat REAL,
-        visceralFat INTEGER,
+        visceralFat REAL,
         waistline REAL,
-        isSynced INTEGER NOT NULL DEFAULT 0
+        isSynced INTEGER NOT NULL DEFAULT 0,
+        journalEntry TEXT
       )
     ''');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE health_metrics ADD COLUMN journalEntry TEXT');
+    }
+    // Note: oldVersion 2 to 3 changes visceralFat from INTEGER to REAL.
+    // In SQLite, this is handled by type affinity and doesn't require a table rebuild.
   }
 
   Future<int> insertMetric(HealthMetric metric) async {

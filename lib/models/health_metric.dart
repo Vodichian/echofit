@@ -8,9 +8,10 @@ class HealthMetric {
   final DateTime timestamp;
   final double? weight;
   final double? bodyFat;
-  final int? visceralFat;
+  final double? visceralFat;
   final double? waistline;
   final bool isSynced;
+  final String? journalEntry;
 
   HealthMetric({
     this.id,
@@ -20,6 +21,7 @@ class HealthMetric {
     this.visceralFat,
     this.waistline,
     this.isSynced = false,
+    this.journalEntry,
   });
 
   factory HealthMetric.fromJson(Map<String, dynamic> json) => _$HealthMetricFromJson(json);
@@ -30,9 +32,10 @@ class HealthMetric {
     DateTime? timestamp,
     double? weight,
     double? bodyFat,
-    int? visceralFat,
+    double? visceralFat,
     double? waistline,
     bool? isSynced,
+    String? journalEntry,
   }) {
     return HealthMetric(
       id: id ?? this.id,
@@ -42,6 +45,7 @@ class HealthMetric {
       visceralFat: visceralFat ?? this.visceralFat,
       waistline: waistline ?? this.waistline,
       isSynced: isSynced ?? this.isSynced,
+      journalEntry: journalEntry ?? this.journalEntry,
     );
   }
 
@@ -54,6 +58,7 @@ class HealthMetric {
       'visceralFat': visceralFat,
       'waistline': waistline,
       'isSynced': isSynced ? 1 : 0,
+      'journalEntry': journalEntry,
     };
   }
 
@@ -61,11 +66,12 @@ class HealthMetric {
     return HealthMetric(
       id: map['id'],
       timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
-      weight: map['weight'],
-      bodyFat: map['bodyFat'],
-      visceralFat: map['visceralFat'],
-      waistline: map['waistline'],
+      weight: (map['weight'] as num?)?.toDouble(),
+      bodyFat: (map['bodyFat'] as num?)?.toDouble(),
+      visceralFat: (map['visceralFat'] as num?)?.toDouble(),
+      waistline: (map['waistline'] as num?)?.toDouble(),
       isSynced: map['isSynced'] == 1,
+      journalEntry: map['journalEntry'],
     );
   }
 }
