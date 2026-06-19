@@ -20,7 +20,14 @@ class _VoiceEntryScreenState extends State<VoiceEntryScreen> {
   bool _isListening = false;
   String _recognizedText = "Tap the microphone and speak your metrics";
 
+  @override
+  void dispose() {
+    _voiceService.cancelListening();
+    super.dispose();
+  }
+
   Future<void> _toggleListening(WidgetRef ref) async {
+    debugPrint('VoiceEntryScreen: _toggleListening called. Current state: _isListening=$_isListening');
     if (_isListening) {
       await _voiceService.stopListening();
     } else {
@@ -30,36 +37,40 @@ class _VoiceEntryScreenState extends State<VoiceEntryScreen> {
             _isListening = listening;
           });
         },
-        onResult: (text) async {
+        onResult: (text, isFinal) async {
           setState(() {
+            debugPrint('Recognized text: $text (isFinal: $isFinal)');
             _recognizedText = text;
           });
-          final metric = VoiceParser.parse(text);
-          if (metric != null) {
-            await ref.read(metricsProvider.notifier).addMetric(metric);
-            
-            // Trigger Sync
-            if (await _settingsService.hasCredentials()) {
-              final creds = await _settingsService.getCredentials();
-              try {
-                await _syncService.syncWithNextcloud(
-                  baseUrl: creds['url']!,
-                  username: creds['username']!,
-                  appPassword: creds['password']!,
-                );
-              } catch (e) {
-                debugPrint('Sync after voice entry failed: $e');
-              }
-            }
 
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Saved and Synced: $text'),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              );
+          if (isFinal) {
+            final metric = VoiceParser.parse(text);
+            if (metric != null) {
+              await ref.read(metricsProvider.notifier).addMetric(metric);
+              
+              // Trigger Sync
+              if (await _settingsService.hasCredentials()) {
+                final creds = await _settingsService.getCredentials();
+                try {
+                  await _syncService.syncWithNextcloud(
+                    baseUrl: creds['url']!,
+                    username: creds['username']!,
+                    appPassword: creds['password']!,
+                  );
+                } catch (e) {
+                  debugPrint('Sync after voice entry failed: $e');
+                }
+              }
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Saved and Synced: $text'),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                );
+              }
             }
           }
         },
