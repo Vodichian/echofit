@@ -36,6 +36,9 @@ htmlcov/
 .pub-cache/
 .pub/
 /build/
+.gradle/
+.kotlin/
+.agent/
 
 # Symbolication related
 app.*.symbols
