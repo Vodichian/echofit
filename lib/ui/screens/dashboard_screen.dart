@@ -8,6 +8,7 @@ import '../widgets/manual_entry_dialog.dart';
 import '../../models/health_metric.dart';
 import '../../utils/regression_utils.dart';
 import 'package:intl/intl.dart';
+import 'dart:math';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -142,7 +143,7 @@ class DashboardScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   Container(
                     height: 300,
-                    padding: const EdgeInsets.only(right: 24, top: 16, bottom: 8, left: 8),
+                    padding: const EdgeInsets.only(right: 16, top: 16, bottom: 8, left: 8),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(24),
@@ -243,23 +244,83 @@ class _TrendChart extends ConsumerWidget {
     final settings = ref.watch(chartSettingsProvider);
     final dataPoints = metrics.reversed.toList();
 
+    // Grouping
+    final leftMetrics = {'Weight', 'Waist'};
+    final rightMetrics = {'Body Fat', 'Visceral'};
+
+    final selectedLeft = settings.selectedMetrics.intersection(leftMetrics);
+    final selectedRight = settings.selectedMetrics.intersection(rightMetrics);
+
+    // Calculate Min/Max for each group
+    double leftMin = double.infinity;
+    double leftMax = double.negativeInfinity;
+    double rightMin = double.infinity;
+    double rightMax = double.negativeInfinity;
+
+    for (var m in dataPoints) {
+      if (selectedLeft.contains('Weight') && m.weight != null) {
+        leftMin = min(leftMin, m.weight!);
+        leftMax = max(leftMax, m.weight!);
+      }
+      if (selectedLeft.contains('Waist') && m.waistline != null) {
+        leftMin = min(leftMin, m.waistline!);
+        leftMax = max(leftMax, m.waistline!);
+      }
+      if (selectedRight.contains('Body Fat') && m.bodyFat != null) {
+        rightMin = min(rightMin, m.bodyFat!);
+        rightMax = max(rightMax, m.bodyFat!);
+      }
+      if (selectedRight.contains('Visceral') && m.visceralFat != null) {
+        rightMin = min(rightMin, m.visceralFat!);
+        rightMax = max(rightMax, m.visceralFat!);
+      }
+    }
+
+    // Default values if no metrics in a group are selected
+    if (leftMin == double.infinity) {
+      leftMin = 0;
+      leftMax = 100;
+    } else {
+      leftMin = (leftMin * 0.95).floorToDouble();
+      leftMax = (leftMax * 1.05).ceilToDouble();
+    }
+
+    if (rightMin == double.infinity) {
+      rightMin = 0;
+      rightMax = 50;
+    } else {
+      rightMin = (rightMin * 0.9).floorToDouble();
+      rightMax = (rightMax * 1.1).ceilToDouble();
+    }
+
+    // Ensure range is at least 1 to avoid division by zero
+    if (leftMax == leftMin) leftMax += 1;
+    if (rightMax == rightMin) rightMax += 1;
+
+    double scaleValue(double val) {
+      // Maps right values to left coordinate space
+      return ((val - rightMin) / (rightMax - rightMin)) * (leftMax - leftMin) + leftMin;
+    }
+
     List<LineChartBarData> lineBarsData = [];
 
-    if (settings.selectedMetrics.contains('Weight')) {
-      lineBarsData.addAll(_generateBars(dataPoints, (m) => m.weight, Colors.blue, 'Weight', settings));
+    if (selectedLeft.contains('Weight')) {
+      lineBarsData.addAll(_generateBars(dataPoints, (m) => m.weight, Colors.blue, 'Weight', settings, null));
     }
-    if (settings.selectedMetrics.contains('Body Fat')) {
-      lineBarsData.addAll(_generateBars(dataPoints, (m) => m.bodyFat, Colors.orange, 'Body Fat', settings));
+    if (selectedLeft.contains('Waist')) {
+      lineBarsData.addAll(_generateBars(dataPoints, (m) => m.waistline, Colors.green, 'Waist', settings, null));
     }
-    if (settings.selectedMetrics.contains('Visceral')) {
-      lineBarsData.addAll(_generateBars(dataPoints, (m) => m.visceralFat, Colors.red, 'Visceral', settings));
+    if (selectedRight.contains('Body Fat')) {
+      lineBarsData.addAll(_generateBars(dataPoints, (m) => m.bodyFat, Colors.orange, 'Body Fat', settings, scaleValue));
     }
-    if (settings.selectedMetrics.contains('Waist')) {
-      lineBarsData.addAll(_generateBars(dataPoints, (m) => m.waistline, Colors.green, 'Waist', settings));
+    if (selectedRight.contains('Visceral')) {
+      lineBarsData.addAll(_generateBars(dataPoints, (m) => m.visceralFat, Colors.red, 'Visceral', settings, scaleValue));
     }
 
     return LineChart(
       LineChartData(
+        minY: leftMin,
+        maxY: leftMax,
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
@@ -270,7 +331,6 @@ class _TrendChart extends ConsumerWidget {
         ),
         titlesData: FlTitlesData(
           show: true,
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
@@ -284,29 +344,36 @@ class _TrendChart extends ConsumerWidget {
                   meta: meta,
                   child: Text(
                     DateFormat('MMM d').format(dataPoints[index].timestamp),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
+                    style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.outline),
                   ),
                 );
               },
             ),
           ),
           leftTitles: AxisTitles(
+            axisNameWidget: selectedLeft.isNotEmpty ? Text(selectedLeft.join('/'), style: const TextStyle(fontSize: 10)) : null,
+            axisNameSize: 12,
             sideTitles: SideTitles(
-              showTitles: true,
+              showTitles: selectedLeft.isNotEmpty,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) => SideTitleWidget(
+                meta: meta,
+                child: Text(value.toStringAsFixed(0), style: TextStyle(fontSize: 10, color: Colors.blue.shade300)),
+              ),
+            ),
+          ),
+          rightTitles: AxisTitles(
+            axisNameWidget: selectedRight.isNotEmpty ? Text(selectedRight.join('/'), style: const TextStyle(fontSize: 10)) : null,
+            axisNameSize: 12,
+            sideTitles: SideTitles(
+              showTitles: selectedRight.isNotEmpty,
               reservedSize: 40,
               getTitlesWidget: (value, meta) {
+                // Inverse mapping: visualValue to original rightValue
+                double originalValue = ((value - leftMin) / (leftMax - leftMin)) * (rightMax - rightMin) + rightMin;
                 return SideTitleWidget(
                   meta: meta,
-                  child: Text(
-                    value.toStringAsFixed(1),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                  ),
+                  child: Text(originalValue.toStringAsFixed(1), style: TextStyle(fontSize: 10, color: Colors.orange.shade300)),
                 );
               },
             ),
@@ -319,8 +386,20 @@ class _TrendChart extends ConsumerWidget {
             getTooltipColor: (spot) => Theme.of(context).colorScheme.surfaceContainerHigh,
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
+                // Get the actual original value
+                double actualValue = spot.y;
+                final barIndex = spot.barIndex;
+                final barData = lineBarsData[barIndex];
+                
+                // If it was a scaled bar, we need to unscale it for the tooltip
+                // We'll use a hack: check if the bar color matches our "right" colors
+                if (barData.color == Colors.orange || barData.color == Colors.red || 
+                    (barData.color?.withValues(alpha: 0.5) == Colors.orange.withValues(alpha: 0.5))) {
+                   actualValue = ((spot.y - leftMin) / (leftMax - leftMin)) * (rightMax - rightMin) + rightMin;
+                }
+
                 return LineTooltipItem(
-                  spot.y.toStringAsFixed(1),
+                  actualValue.toStringAsFixed(1),
                   TextStyle(
                     color: spot.bar.color ?? Colors.white,
                     fontWeight: FontWeight.bold,
@@ -340,12 +419,13 @@ class _TrendChart extends ConsumerWidget {
     Color color,
     String label,
     ChartSettings settings,
+    double Function(double)? scaler,
   ) {
     List<FlSpot> spots = [];
     for (int i = 0; i < data.length; i++) {
       final val = getValue(data[i]);
       if (val != null) {
-        spots.add(FlSpot(i.toDouble(), val));
+        spots.add(FlSpot(i.toDouble(), scaler != null ? scaler(val) : val));
       }
     }
 
