@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/health_metric.dart';
 import '../../providers/metrics_provider.dart';
-import '../../services/settings_service.dart';
-import '../../services/sync_service.dart';
 
 class ManualEntryDialog extends ConsumerStatefulWidget {
   final HealthMetric? initialMetric;
@@ -26,9 +24,6 @@ class _ManualEntryDialogState extends ConsumerState<ManualEntryDialog> {
   late final TextEditingController _visceralFatController;
   late final TextEditingController _waistlineController;
   late final TextEditingController _journalController;
-
-  final SettingsService _settingsService = SettingsService();
-  final SyncService _syncService = SyncService();
 
   @override
   void initState() {
@@ -102,20 +97,6 @@ class _ManualEntryDialogState extends ConsumerState<ManualEntryDialog> {
         await ref.read(metricsProvider.notifier).updateMetric(metric);
       } else {
         await ref.read(metricsProvider.notifier).addMetric(metric);
-      }
-
-      // Trigger Sync
-      if (await _settingsService.hasCredentials()) {
-        final creds = await _settingsService.getCredentials();
-        try {
-          await _syncService.syncWithNextcloud(
-            baseUrl: creds['url']!,
-            username: creds['username']!,
-            appPassword: creds['password']!,
-          );
-        } catch (e) {
-          debugPrint('Sync after manual entry failed: $e');
-        }
       }
 
       if (mounted) {
@@ -226,6 +207,7 @@ class _ManualEntryDialogState extends ConsumerState<ManualEntryDialog> {
         if (isEditing)
           TextButton(
             onPressed: () async {
+              final navigator = Navigator.of(context);
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
@@ -240,7 +222,7 @@ class _ManualEntryDialogState extends ConsumerState<ManualEntryDialog> {
               if (confirm == true && mounted) {
                 await ref.read(metricsProvider.notifier).deleteMetric(widget.initialMetric!.id!);
                 if (mounted) {
-                  Navigator.of(context).pop();
+                  navigator.pop();
                 }
               }
             },

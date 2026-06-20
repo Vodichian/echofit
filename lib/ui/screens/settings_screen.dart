@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../services/settings_service.dart';
 import '../../services/sync_service.dart';
+import '../../utils/backup_pruning_utils.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -84,6 +86,128 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _showRestoreDialog() async {
+    final creds = await _settingsService.getCredentials();
+    if (creds['url'] == null || creds['username'] == null || creds['password'] == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please save credentials first')),
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final backups = await _syncService.getAvailableBackups(
+        baseUrl: creds['url']!,
+        username: creds['username']!,
+        appPassword: creds['password']!,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading indicator
+
+      if (backups.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No backups found on server')),
+        );
+        return;
+      }
+
+      // Sort backups descending
+      backups.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Select Backup to Restore'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: backups.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(DateFormat('yyyy-MM-dd HH:mm:ss').format(backups[index].timestamp)),
+                  subtitle: Text(backups[index].path.split('/').last),
+                  onTap: () => Navigator.pop(context, backups[index]),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      ).then((selectedBackup) async {
+        if (selectedBackup is BackupFile && mounted) {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Confirm Restore'),
+              content: const Text('This will replace ALL local data with the selected backup. This cannot be undone. Are you sure?'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                  child: const Text('Restore'),
+                ),
+              ],
+            ),
+          );
+
+          if (confirm == true && mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => const Center(child: CircularProgressIndicator()),
+            );
+
+            try {
+              await _syncService.importFromBackup(
+                backupUrl: selectedBackup.path,
+                username: creds['username']!,
+                appPassword: creds['password']!,
+              );
+              if (mounted) {
+                Navigator.pop(context); // Close loading
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Data restored successfully')),
+                );
+              }
+            } catch (e) {
+              if (mounted) {
+                Navigator.pop(context); // Close loading
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Restore failed: $e')),
+                );
+              }
+            }
+          }
+        }
+      });
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to fetch backups: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -147,6 +271,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: _isSyncing ? null : _triggerSync,
             icon: _isSyncing ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync),
             label: const Text('Sync Now'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.all(16),
+              minimumSize: const Size(double.infinity, 50),
+            ),
+          ),
+          const SizedBox(height: 32),
+          const Divider(),
+          const SizedBox(height: 16),
+          Text(
+            'Backup & Recovery',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Restore your data from a previous synchronization point.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: _isSyncing ? null : _showRestoreDialog,
+            icon: const Icon(Icons.settings_backup_restore),
+            label: const Text('Restore from Backup'),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.all(16),
               minimumSize: const Size(double.infinity, 50),

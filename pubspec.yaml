@@ -2,7 +2,7 @@ name: echofit
 description: "EchoFit: A multi-platform health metric tracker (Android & Windows) featuring voice-driven data entry and secure Nextcloud synchronization."
 publish_to: 'none'
 
-version: 1.1.0+1
+version: 1.1.1+1
 
 environment:
   sdk: ^3.11.5
@@ -17,6 +17,7 @@ dependencies:
   path_provider: ^2.1.5
   intl: ^0.20.2
   json_annotation: ^4.12.0
+  meta: ^1.17.0
   speech_to_text: ^7.4.0
   permission_handler: ^12.0.3
   fl_chart: ^1.2.0
@@ -25,6 +26,7 @@ dependencies:
   shared_preferences: ^2.5.5
   sqflite_common_ffi: ^2.4.0+3
   table_calendar: ^3.1.2
+  xml: ^6.5.0
 
 dev_dependencies:
   flutter_test:
