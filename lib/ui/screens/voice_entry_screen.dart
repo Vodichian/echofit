@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/metrics_provider.dart';
 import '../../services/voice_service.dart';
 import '../../services/voice_parser.dart';
-import '../../services/settings_service.dart';
-import '../../services/sync_service.dart';
 
 class VoiceEntryScreen extends StatefulWidget {
   const VoiceEntryScreen({super.key});
@@ -15,8 +13,6 @@ class VoiceEntryScreen extends StatefulWidget {
 
 class _VoiceEntryScreenState extends State<VoiceEntryScreen> {
   final VoiceService _voiceService = VoiceService();
-  final SettingsService _settingsService = SettingsService();
-  final SyncService _syncService = SyncService();
   bool _isListening = false;
   String _recognizedText = "Tap the microphone and speak your metrics";
 
@@ -48,20 +44,6 @@ class _VoiceEntryScreenState extends State<VoiceEntryScreen> {
             if (metric != null) {
               await ref.read(metricsProvider.notifier).addMetric(metric);
               
-              // Trigger Sync
-              if (await _settingsService.hasCredentials()) {
-                final creds = await _settingsService.getCredentials();
-                try {
-                  await _syncService.syncWithNextcloud(
-                    baseUrl: creds['url']!,
-                    username: creds['username']!,
-                    appPassword: creds['password']!,
-                  );
-                } catch (e) {
-                  debugPrint('Sync after voice entry failed: $e');
-                }
-              }
-
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

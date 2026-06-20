@@ -25,7 +25,7 @@ void main() {
     final timestamp = DateTime(2023, 10, 27);
     final metric = HealthMetric(id: 1, timestamp: timestamp, weight: 70.0, isSynced: false);
 
-    test('syncWithNextcloud should download, merge and upload data', () async {
+    test('syncWithNextcloud should backup and prune', () async {
       // Mock GET (remote data)
       when(mockDio.get(any, options: anyNamed('options'))).thenAnswer(
         (_) async => Response(
@@ -39,7 +39,7 @@ void main() {
       when(mockDbService.getUnsyncedMetrics()).thenAnswer((_) async => [metric]);
       when(mockDbService.getAllMetrics()).thenAnswer((_) async => [metric]);
 
-      // Mock PUT (upload merged)
+      // Mock PUT (upload merged AND backup)
       when(mockDio.put(any, data: anyNamed('data'), options: anyNamed('options'))).thenAnswer(
         (_) async => Response(
           statusCode: 204,
@@ -47,36 +47,18 @@ void main() {
         ),
       );
 
-      // Mock Local Update
-      when(mockDbService.updateMetric(any)).thenAnswer((_) async => {});
-
-      await syncService.syncWithNextcloud(
-        baseUrl: 'https://test.com',
-        username: 'user',
-        appPassword: 'pass',
-      );
-
-      verify(mockDio.get(any, options: anyNamed('options'))).called(1);
-      verify(mockDbService.getUnsyncedMetrics()).called(1);
-      verify(mockDio.put(any, data: anyNamed('data'), options: anyNamed('options'))).called(1);
-      verify(mockDbService.updateMetric(argThat(predicate<HealthMetric>((m) => m.isSynced)))).called(1);
-    });
-
-    test('syncWithNextcloud should handle 404 for remote file', () async {
-      when(mockDio.get(any, options: anyNamed('options'))).thenThrow(
-        DioException(
+      // Mock PROPFIND for pruning (empty list)
+      when(mockDio.request(any, options: argThat(predicate<Options>((o) => o.method == 'PROPFIND'), named: 'options'))).thenAnswer(
+        (_) async => Response(
+          statusCode: 207,
+          data: '<?xml version="1.0" encoding="UTF-8"?><d:multistatus xmlns:d="DAV:"></d:multistatus>',
           requestOptions: RequestOptions(path: ''),
-          response: Response(statusCode: 404, requestOptions: RequestOptions(path: '')),
         ),
       );
 
-      when(mockDbService.getUnsyncedMetrics()).thenAnswer((_) async => []);
-      when(mockDbService.getAllMetrics()).thenAnswer((_) async => []);
-      
-      // Mock PUT
-      when(mockDio.put(any, data: anyNamed('data'), options: anyNamed('options'))).thenAnswer(
-        (_) async => Response(statusCode: 204, requestOptions: RequestOptions(path: '')),
-      );
+      // Mock Local Update
+      when(mockDbService.updateMetric(any)).thenAnswer((_) async => {});
+      when(mockDbService.insertMetric(any)).thenAnswer((_) async => 1);
 
       await syncService.syncWithNextcloud(
         baseUrl: 'https://test.com',
@@ -84,8 +66,36 @@ void main() {
         appPassword: 'pass',
       );
 
-      verify(mockDio.get(any, options: anyNamed('options'))).called(1);
-      // Should still proceed to upload local data (if any)
+      // Verify normal PUT
+      verify(mockDio.put(argThat(contains('data.json')), data: anyNamed('data'), options: anyNamed('options'))).called(1);
+      // Verify backup PUT
+      verify(mockDio.put(argThat(contains('backups/data_')), data: anyNamed('data'), options: anyNamed('options'))).called(1);
+      // Verify PROPFIND
+      verify(mockDio.request(any, options: argThat(predicate<Options>((o) => o.method == 'PROPFIND'), named: 'options'))).called(1);
+    });
+
+    test('importFromBackup should replace local data', () async {
+      final backupData = [metric.toJson()];
+      when(mockDio.get(any, options: anyNamed('options'))).thenAnswer(
+        (_) async => Response(
+          data: jsonEncode(backupData),
+          statusCode: 200,
+          requestOptions: RequestOptions(path: ''),
+        ),
+      );
+
+      when(mockDbService.getAllMetrics()).thenAnswer((_) async => [metric]);
+      when(mockDbService.deleteMetric(any)).thenAnswer((_) async => 1);
+      when(mockDbService.insertMetric(any)).thenAnswer((_) async => 1);
+
+      await syncService.importFromBackup(
+        backupUrl: 'https://test.com/backup.json',
+        username: 'user',
+        appPassword: 'pass',
+      );
+
+      verify(mockDbService.deleteMetric(1)).called(1);
+      verify(mockDbService.insertMetric(argThat(predicate<HealthMetric>((m) => !m.isSynced)))).called(1);
     });
   });
 }

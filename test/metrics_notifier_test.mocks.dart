@@ -7,6 +7,9 @@ import 'dart:async' as _i4;
 
 import 'package:echofit/models/health_metric.dart' as _i5;
 import 'package:echofit/services/database_service.dart' as _i3;
+import 'package:echofit/services/settings_service.dart' as _i6;
+import 'package:echofit/services/sync_service.dart' as _i7;
+import 'package:echofit/utils/backup_pruning_utils.dart' as _i8;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:sqflite/sqflite.dart' as _i2;
 
@@ -95,6 +98,120 @@ class MockDatabaseService extends _i1.Mock implements _i3.DatabaseService {
   _i4.Future<void> deleteMetric(int? id) =>
       (super.noSuchMethod(
             Invocation.method(#deleteMetric, [id]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+}
+
+/// A class which mocks [SettingsService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockSettingsService extends _i1.Mock implements _i6.SettingsService {
+  MockSettingsService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i4.Future<void> saveCredentials(String? url, String? user, String? pass) =>
+      (super.noSuchMethod(
+            Invocation.method(#saveCredentials, [url, user, pass]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<Map<String, String?>> getCredentials() =>
+      (super.noSuchMethod(
+            Invocation.method(#getCredentials, []),
+            returnValue: _i4.Future<Map<String, String?>>.value(
+              <String, String?>{},
+            ),
+          )
+          as _i4.Future<Map<String, String?>>);
+
+  @override
+  _i4.Future<bool> hasCredentials() =>
+      (super.noSuchMethod(
+            Invocation.method(#hasCredentials, []),
+            returnValue: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
+}
+
+/// A class which mocks [SyncService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockSyncService extends _i1.Mock implements _i7.SyncService {
+  MockSyncService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i4.Future<void> syncWithNextcloud({
+    required String? baseUrl,
+    required String? username,
+    required String? appPassword,
+    String? remotePath = 'EchoFit/data.json',
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#syncWithNextcloud, [], {
+              #baseUrl: baseUrl,
+              #username: username,
+              #appPassword: appPassword,
+              #remotePath: remotePath,
+            }),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<List<_i8.BackupFile>> listBackups(
+    String? backupDirUrl,
+    String? auth,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#listBackups, [backupDirUrl, auth]),
+            returnValue: _i4.Future<List<_i8.BackupFile>>.value(
+              <_i8.BackupFile>[],
+            ),
+          )
+          as _i4.Future<List<_i8.BackupFile>>);
+
+  @override
+  _i4.Future<List<_i8.BackupFile>> getAvailableBackups({
+    required String? baseUrl,
+    required String? username,
+    required String? appPassword,
+    String? remotePath = 'EchoFit/data.json',
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getAvailableBackups, [], {
+              #baseUrl: baseUrl,
+              #username: username,
+              #appPassword: appPassword,
+              #remotePath: remotePath,
+            }),
+            returnValue: _i4.Future<List<_i8.BackupFile>>.value(
+              <_i8.BackupFile>[],
+            ),
+          )
+          as _i4.Future<List<_i8.BackupFile>>);
+
+  @override
+  _i4.Future<void> importFromBackup({
+    required String? backupUrl,
+    required String? username,
+    required String? appPassword,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#importFromBackup, [], {
+              #backupUrl: backupUrl,
+              #username: username,
+              #appPassword: appPassword,
+            }),
             returnValue: _i4.Future<void>.value(),
             returnValueForMissingStub: _i4.Future<void>.value(),
           )
